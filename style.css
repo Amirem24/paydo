@@ -35,13 +35,25 @@ body {
     align-items: center;
 }
 
-/* ... (کدهای قبلی تا قبل از main) ... */
 #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease-out; }
 .loading-logo { width: 80px; height: 80px; border: 8px solid rgba(255, 255, 255, 0.3); border-top: 8px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 40px; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .loading-bar-container { position: absolute; bottom: 50px; width: 70%; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 10px; overflow: hidden; }
 .loading-bar { height: 100%; background: #fff; width: 0%; transition: width 0.3s ease-out; border-radius: 10px; }
 .loading-text { position: absolute; bottom: 25px; font-size: 12px; color: rgba(255, 255, 255, 0.8); }
+
+/* --- ONBOARDING SCREEN --- */
+#onboarding-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-gradient); z-index: 5000; padding: 30px; display: flex; flex-direction: column; }
+.onboard-slide { display: none; flex-direction: column; height: 100%; justify-content: space-between; animation: fadeIn 0.4s ease; }
+.onboard-slide.active { display: flex; }
+.onboard-content-center { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
+.onboard-content-top { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+.onboard-features { width: 100%; display: flex; flex-direction: column; gap: 30px; }
+.onboard-item { display: flex; align-items: center; gap: 15px; }
+.onboard-icon i { font-size: 32px; }
+.onboard-text h4 { font-size: 15px; margin-bottom: 5px; font-weight: 700; }
+.onboard-text p { font-size: 12px; opacity: 0.7; line-height: 1.4; }
+.onboard-list { width: 100%; max-height: 35vh; overflow-y: auto; margin-bottom: 20px; background: rgba(0,0,0,0.1); border-radius: 15px; padding: 10px; }
 
 .app-container { width: 100%; height: 100%; max-width: 480px; background: rgba(20, 20, 20, 0.4); backdrop-filter: blur(20px); display: flex; flex-direction: column; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.5s ease-in; }
 @media (min-width: 768px) { .app-container { height: 95vh; border-radius: 30px; overflow: hidden; } }
@@ -114,9 +126,10 @@ main::-webkit-scrollbar { display: none; }
 .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
 .empty-state i { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
 .account-manage-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.account-actions i { margin-right: 10px; cursor: pointer; color: var(--text-muted); }
+.account-actions { display: flex; gap: 15px; }
+.account-actions i { cursor: pointer; color: var(--text-muted); transition: color 0.2s; }
+.account-actions i:hover { color: #fff; }
 
-/* --- SETTINGS & BUTTONS --- */
 .settings-group { background: var(--glass-bg); border-radius: 15px; border: 1px solid var(--glass-border); padding: 20px; margin-bottom: 20px; }
 .settings-header { font-size: 13px; font-weight: 700; margin-bottom: 15px; color: var(--accent); opacity: 0.9; }
 .settings-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
@@ -127,7 +140,6 @@ main::-webkit-scrollbar { display: none; }
 .btn-primary-outline { width: 100%; background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 12px; border-radius: 12px; font-family: 'Vazirmatn'; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: all 0.2s; }
 .btn-secondary { flex: 1; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; font-family: 'Vazirmatn'; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 13px; }
 
-/* --- TOAST & CONFIRM --- */
 .toast-container { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
 .toast { background: rgba(45, 45, 58, 0.95); color: #fff; padding: 12px 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); font-size: 13px; display: flex; align-items: center; gap: 10px; animation: slideUpFade 0.3s ease-out; border: 1px solid rgba(255,255,255,0.1); pointer-events: all; }
 @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -141,101 +153,28 @@ main::-webkit-scrollbar { display: none; }
 .selection-item:active { background: rgba(255,255,255,0.15); }
 .selection-item i { opacity: 0.7; }
 
-/* --- NEW BUDGET STYLES --- */
-.budget-entry-btn {
-    background: linear-gradient(135deg, #448aff 0%, #2962ff 100%);
-    padding: 15px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    box-shadow: 0 5px 15px rgba(41, 98, 255, 0.3);
-    transition: transform 0.2s;
-}
+.budget-entry-btn { background: linear-gradient(135deg, #448aff 0%, #2962ff 100%); padding: 15px; border-radius: 20px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; cursor: pointer; box-shadow: 0 5px 15px rgba(41, 98, 255, 0.3); transition: transform 0.2s; }
 .budget-entry-btn:active { transform: scale(0.98); }
-.budget-icon-box {
-    width: 45px; height: 45px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 12px;
-    display: flex; justify-content: center; align-items: center;
-}
-
+.budget-icon-box { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; justify-content: center; align-items: center; }
 .budget-header { display: flex; justify-content: center; margin-bottom: 20px; }
 .budget-tabs { display: flex; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 4px; gap: 4px; }
 .budget-tab { padding: 8px 24px; border-radius: 10px; font-size: 13px; cursor: pointer; color: rgba(255,255,255,0.6); transition: all 0.2s; }
 .budget-tab.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 700; }
-
 .month-selector { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px; }
 .month-selector i { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 5px; cursor: pointer; }
 .month-selector span { font-weight: 700; font-size: 15px; min-width: 100px; text-align: center; }
-
 .budget-summary { text-align: center; margin-bottom: 30px; }
 .budget-total-amount { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 5px; }
 .budget-total-label { font-size: 13px; color: var(--text-muted); }
-
-/* Chart Styles */
-.chart-container {
-    height: 220px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 20px;
-    padding: 20px 15px 10px 15px; /* bottom padding reduced for labels */
-    position: relative;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-.chart-y-grid {
-    position: absolute; top: 20px; left: 15px; right: 15px; bottom: 40px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    pointer-events: none;
-}
+.chart-container { height: 220px; background: rgba(255,255,255,0.03); border-radius: 20px; padding: 20px 15px 10px 15px; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+.chart-y-grid { position: absolute; top: 20px; left: 15px; right: 15px; bottom: 40px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
 .grid-line { width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); position: relative; }
-
-.chart-bars-area {
-    position: absolute; top: 20px; left: 15px; right: 15px; bottom: 40px;
-    display: flex; align-items: flex-end; justify-content: space-between; /* Distribute bars evenly */
-    gap: 2px; /* Small gap */
-}
-.chart-bar {
-    width: 6px; /* Default thin bar */
-    border-radius: 4px;
-    background: #448aff;
-    transition: height 0.3s, background 0.2s, width 0.2s;
-    cursor: pointer;
-    position: relative;
-}
-.chart-bar:hover, .chart-bar.active {
-    background: #82b1ff;
-    width: 8px;
-    box-shadow: 0 0 10px rgba(68, 138, 255, 0.5);
-}
+.chart-bars-area { position: absolute; top: 20px; left: 15px; right: 15px; bottom: 40px; display: flex; align-items: flex-end; justify-content: space-between; gap: 2px; }
+.chart-bar { width: 6px; border-radius: 4px; background: #448aff; transition: height 0.3s, background 0.2s, width 0.2s; cursor: pointer; position: relative; }
+.chart-bar:hover, .chart-bar.active { background: #82b1ff; width: 8px; box-shadow: 0 0 10px rgba(68, 138, 255, 0.5); }
 .chart-bar.empty { background: transparent; }
-
-.chart-x-labels {
-    position: absolute; bottom: 10px; left: 15px; right: 15px;
-    display: flex; justify-content: space-between;
-    font-size: 10px; color: rgba(255,255,255,0.4);
-    direction: ltr; /* Labels are numbers 1..30 */
-}
-
-.chart-tooltip {
-    position: absolute;
-    background: rgba(40,40,50,0.95);
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: #fff;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    border: 1px solid rgba(255,255,255,0.2);
-    transform: translate(-50%, -120%);
-    white-space: nowrap;
-    z-index: 10;
-}
-
-/* Category List Styles in Budget */
+.chart-x-labels { position: absolute; bottom: 10px; left: 15px; right: 15px; display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.4); direction: ltr; }
+.chart-tooltip { position: absolute; background: rgba(40,40,50,0.95); padding: 5px 10px; border-radius: 8px; font-size: 12px; color: #fff; pointer-events: none; opacity: 0; transition: opacity 0.2s; border: 1px solid rgba(255,255,255,0.2); transform: translate(-50%, -120%); white-space: nowrap; z-index: 10; }
 .budget-categories-list { display: flex; flex-direction: column; gap: 15px; }
 .cat-row { display: flex; flex-direction: column; gap: 5px; }
 .cat-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }

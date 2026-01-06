@@ -22,6 +22,52 @@
     <div class="loading-text" id="loading-text">در حال راه‌اندازی Paydo...</div>
 </div>
 
+<!-- ONBOARDING SCREEN -->
+<div id="onboarding-screen" style="display: none;">
+    <div class="onboard-slide active" id="slide-welcome">
+        <div class="onboard-content-center">
+            <div style="font-size: 18px; opacity: 0.8; margin-bottom: 10px;">خوش اومدی به</div>
+            <div class="logo" style="font-size: 40px; margin-bottom: 60px; display:inline-block;">paydo</div>
+            <div class="onboard-features">
+                <div class="onboard-item">
+                    <div class="onboard-icon" style="color:#ffab40"><i class="material-icons">bar_chart</i></div>
+                    <div class="onboard-text">
+                        <h4>نمایش نمودار دخل‌وخرج</h4>
+                        <p>خرج این ماه رو با ماه‌های قبل مقایسه کن</p>
+                    </div>
+                </div>
+                <div class="onboard-item">
+                    <div class="onboard-icon" style="color:#ff4081"><i class="material-icons">pie_chart</i></div>
+                    <div class="onboard-text">
+                        <h4>مشاهده خرج هر دسته‌بندی</h4>
+                        <p>سهم هر دسته‌بندی رو در دخل‌وخرج‌ها ببین</p>
+                    </div>
+                </div>
+                <div class="onboard-item">
+                    <div class="onboard-icon" style="color:#40c4ff"><i class="material-icons">touch_app</i></div>
+                    <div class="onboard-text">
+                        <h4>ثبت تراکنش با یک کلیک</h4>
+                        <p>با یک کلیک، تراکنش‌های بانکی رو ثبت کن</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="btn-primary" onclick="nextOnboarding()">شروع</button>
+    </div>
+    <div class="onboard-slide" id="slide-setup">
+        <div class="onboard-content-top">
+            <div style="font-size: 24px; font-weight: 800; margin-bottom: 10px;">حساب‌کتاب‌ها</div>
+            <p style="text-align:center; font-size:13px; opacity:0.7; margin-bottom: 30px; line-height:1.6;">همه حساب‌کتاب‌هات رو (بانکی و غیربانکی)<br>یکجا در Paydo ثبت کن!</p>
+            <div id="onboard-accounts-list" class="onboard-list"></div>
+            <button class="btn-secondary" onclick="openAddAccountModal()" style="width:100%; margin-top:10px;"><i class="material-icons">add</i> افزودن حساب‌کتاب جدید</button>
+        </div>
+        <div style="width:100%">
+            <button class="btn-primary" onclick="finishOnboarding()">بزن بریم!</button>
+            <div style="text-align:center; margin-top:15px; font-size:13px; opacity:0.5; cursor:pointer;" onclick="prevOnboarding()">صفحه قبل</div>
+        </div>
+    </div>
+</div>
+
 <div class="app-container" id="app-container">
     <header>
         <div class="logo">paydo</div>
@@ -34,37 +80,67 @@
                 <div class="balance-label">موجودی کل</div>
                 <div class="balance-amount" id="total-balance">۰ <span class="currency">تومان</span></div>
             </div>
-
-            <div class="section-title">
-                <span>حساب‌های من</span>
-            </div>
-            
+            <div class="section-title"><span>حساب‌های من</span></div>
             <div class="accounts-scroll" id="accounts-container"></div>
-
             <div class="section-title">
                 <span>تراکنش‌های اخیر</span>
                 <span class="see-all" onclick="switchView('history')">مشاهده همه</span>
             </div>
-
             <div class="transactions-list" id="recent-transactions"></div>
+        </div>
+
+        <!-- TOOLS VIEW (NEW) -->
+        <div id="view-tools" class="view-section">
+            <div class="section-title" style="margin-top: 10px;">ابزارها</div>
+            
+            <!-- Asset Portfolio Entry -->
+            <div class="settings-group">
+                <div class="settings-item" onclick="switchView('assets')" style="cursor: pointer; margin-bottom: 0;">
+                    <div class="settings-icon" style="color:#ffca28"><i class="material-icons">monetization_on</i></div>
+                    <div class="settings-info">
+                        <h4>سبد دارایی</h4>
+                        <p>مدیریت دارایی‌های غیرنقدی (طلا، ارز، سهام)</p>
+                    </div>
+                    <i class="material-icons" style="margin-right:auto; color:rgba(255,255,255,0.5)">chevron_left</i>
+                </div>
+            </div>
+        </div>
+
+        <!-- ASSETS VIEW (NEW) -->
+        <div id="view-assets" class="view-section">
+            <div class="section-title" style="margin-top: 10px; cursor: pointer;" onclick="switchView('tools')">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="material-icons">arrow_forward</i>
+                    <span>بازگشت به ابزارها</span>
+                </div>
+            </div>
+
+            <div class="balance-card" style="background: linear-gradient(135deg, #2b32b2 0%, #1488cc 100%);">
+                <div class="balance-label">ارزش کل دارایی‌های غیرنقدی</div>
+                <div class="balance-amount" id="total-assets-value">۰ <span class="currency">تومان</span></div>
+                <div style="font-size: 11px; opacity: 0.7; margin-top: 10px;">* این مبلغ در موجودی کل حساب‌ها محاسبه نمی‌شود</div>
+            </div>
+
+            <div class="section-title" style="justify-content: flex-end;">
+                <button onclick="openAddAssetModal()" style="background:none; border:none; color:#fff; cursor:pointer; font-family: inherit;">
+                    <i class="material-icons" style="vertical-align: middle;">add_circle_outline</i> افزودن دارایی
+                </button>
+            </div>
+            
+            <div id="assets-list-container"></div>
         </div>
 
         <!-- HISTORY VIEW -->
         <div id="view-history" class="view-section">
             <div class="section-title" style="margin-top: 10px;">گزارشات</div>
-            
-            <!-- BUDGET ENTRY BUTTON -->
             <div class="budget-entry-btn" onclick="switchView('budget')">
-                <div class="budget-icon-box">
-                    <i class="material-icons">bar_chart</i>
-                </div>
+                <div class="budget-icon-box"><i class="material-icons">bar_chart</i></div>
                 <div style="flex:1">
                     <div style="font-weight: 700; font-size: 15px;">بودجه‌بندی و تحلیل</div>
                     <div style="font-size: 11px; opacity: 0.7;">مشاهده نمودار هزینه‌ها و درآمدها</div>
                 </div>
                 <i class="material-icons">chevron_left</i>
             </div>
-
             <div class="search-container">
                 <i class="material-icons search-icon">search</i>
                 <input type="text" class="search-input" placeholder="جستجو در تراکنش‌ها..." id="transaction-search">
@@ -72,47 +148,42 @@
             <div class="transactions-list" id="all-transactions"></div>
         </div>
 
-        <!-- BUDGET VIEW (NEW) -->
+        <!-- BUDGET VIEW -->
         <div id="view-budget" class="view-section">
+             <!-- (Budget content same as before) -->
+            <div class="section-title" style="margin-top: 10px; cursor: pointer;" onclick="switchView('history')">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <i class="material-icons">arrow_forward</i>
+                    <span>بازگشت به گزارشات</span>
+                </div>
+            </div>
             <div class="budget-header">
                 <div class="budget-tabs">
                     <div class="budget-tab active" id="tab-budget-expense" onclick="setBudgetTab('expense')">هزینه‌ها</div>
                     <div class="budget-tab" id="tab-budget-income" onclick="setBudgetTab('income')">درآمدها</div>
                 </div>
             </div>
-
             <div class="month-selector">
                 <i class="material-icons" onclick="changeBudgetMonth(-1)">chevron_right</i>
                 <span id="budget-month-label">...</span>
                 <i class="material-icons" onclick="changeBudgetMonth(1)">chevron_left</i>
             </div>
-
             <div class="budget-summary">
                 <div class="budget-total-amount" id="budget-total-amount">۰ ریال</div>
                 <div class="budget-total-label" id="budget-total-label">مجموع هزینه ماه</div>
             </div>
-
-            <!-- CHART AREA -->
             <div class="chart-container">
                 <div class="chart-y-grid">
                     <div class="grid-line"><span></span></div>
                     <div class="grid-line"><span></span></div>
                     <div class="grid-line"><span></span></div>
                 </div>
-                <div class="chart-bars-area" id="chart-bars-area">
-                    <!-- Bars injected by JS -->
-                </div>
-                <div class="chart-x-labels">
-                    <span>۳۰</span><span>۲۲</span><span>۱۵</span><span>۸</span><span>۱</span>
-                </div>
-                <!-- Tooltip -->
+                <div class="chart-bars-area" id="chart-bars-area"></div>
+                <div class="chart-x-labels"><span>۳۰</span><span>۲۲</span><span>۱۵</span><span>۸</span><span>۱</span></div>
                 <div id="chart-tooltip" class="chart-tooltip"></div>
             </div>
-
             <div class="section-title" style="margin-top: 25px;">دسته‌بندی</div>
-            <div id="budget-categories-list" class="budget-categories-list">
-                <!-- Categories injected by JS -->
-            </div>
+            <div id="budget-categories-list" class="budget-categories-list"></div>
         </div>
 
         <!-- ACCOUNTS VIEW -->
@@ -128,7 +199,6 @@
         <!-- SETTINGS VIEW -->
         <div id="view-settings" class="view-section">
             <div class="section-title" style="margin-top: 10px;">تنظیمات</div>
-            
             <div class="settings-group">
                 <div class="settings-header">دسته بندی ها</div>
                 <div class="settings-item" onclick="openCategoriesModal()" style="cursor: pointer;">
@@ -140,7 +210,6 @@
                     <i class="material-icons" style="margin-right:auto; color:rgba(255,255,255,0.5)">chevron_left</i>
                 </div>
             </div>
-
             <div class="settings-group">
                 <div class="settings-header">مدیریت حافظه</div>
                 <div class="settings-item">
@@ -151,43 +220,33 @@
                     </div>
                 </div>
                 <button class="btn-danger-outline" onclick="resetAppData()">
-                    <i class="material-icons">delete_forever</i>
-                    حذف کل اطلاعات (ریست فکتوری)
+                    <i class="material-icons">delete_forever</i> حذف کل اطلاعات (ریست فکتوری)
                 </button>
             </div>
-
             <div class="settings-group">
                 <div class="settings-header">مدیریت فایل پشتیبان</div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-secondary" onclick="backupData()">
-                        <i class="material-icons">cloud_download</i>
-                        بکاپ (دانلود)
+                        <i class="material-icons">cloud_download</i> بکاپ (دانلود)
                     </button>
                     <button class="btn-secondary" onclick="document.getElementById('restore-file').click()">
-                        <i class="material-icons">cloud_upload</i>
-                        ریستور (آپلود)
+                        <i class="material-icons">cloud_upload</i> ریستور (آپلود)
                     </button>
                     <input type="file" id="restore-file" accept=".json" style="display: none;" onchange="restoreData(this)">
                 </div>
             </div>
-
             <div class="settings-group">
                 <div class="settings-header">به‌روزرسانی</div>
                 <div class="settings-item">
                     <div class="settings-icon"><i class="material-icons">system_update</i></div>
                     <div class="settings-info">
                         <h4>نسخه برنامه</h4>
-                        <p>v2.0.0 (Paydo)</p>
+                        <p>v2.2.0 (Paydo)</p>
                     </div>
                 </div>
-                <button class="btn-primary-outline" onclick="checkForUpdate()">
-                    بررسی و دریافت نسخه جدید
-                </button>
+                <button class="btn-primary-outline" onclick="checkForUpdate()">بررسی و دریافت نسخه جدید</button>
             </div>
-            
-            <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 12px; margin-top: 20px; padding-bottom: 20px;">
-                Paydo Finance App
-            </div>
+            <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 12px; margin-top: 20px; padding-bottom: 20px;">Paydo Finance App</div>
         </div>
     </main>
 
@@ -203,9 +262,10 @@
         <div class="fab-add" onclick="openAddTransactionModal()">
             <i class="material-icons">add</i>
         </div>
-        <div class="nav-item" onclick="switchView('history')" id="nav-history">
-            <i class="material-icons">receipt_long</i>
-            <span>گزارش</span>
+        <!-- CHANGED: Reports -> Tools -->
+        <div class="nav-item" onclick="switchView('tools')" id="nav-tools">
+            <i class="material-icons">grid_view</i>
+            <span>ابزار</span>
         </div>
         <div class="nav-item" onclick="switchView('settings')" id="nav-settings">
             <i class="material-icons">settings</i>
@@ -216,14 +276,10 @@
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- MODALS (Confirm, Selection, Transaction, Account, Categories) ... (همان کدهای قبلی) -->
-    <!-- برای خلاصه شدن، کدهای مودال‌ها تغییر نکرده‌اند و باید همان کدهای قبلی اینجا باشند -->
-    <!-- CUSTOM CONFIRM MODAL -->
+    <!-- MODALS (Existing: Confirm, Selection, Transaction, Account, Categories) -->
     <div class="modal-overlay" id="modal-confirm" style="z-index: 2000;">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="confirm-title">عنوان تایید</h3>
-            </div>
+            <div class="modal-header"><h3 id="confirm-title">عنوان تایید</h3></div>
             <p id="confirm-message" style="color: rgba(255,255,255,0.8); line-height: 1.6;">متن پیام</p>
             <div class="confirm-actions">
                 <button class="btn-confirm-yes" id="btn-confirm-yes">بله، مطمئنم</button>
@@ -231,92 +287,62 @@
             </div>
         </div>
     </div>
-
-    <!-- SELECTION MODAL -->
     <div class="modal-overlay" id="modal-selection" style="z-index: 1500;">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="selection-title">انتخاب کنید</h3>
-                <button class="close-modal" onclick="closeModal('modal-selection')">&times;</button>
-            </div>
+            <div class="modal-header"><h3 id="selection-title">انتخاب کنید</h3><button class="close-modal" onclick="closeModal('modal-selection')">&times;</button></div>
             <div class="selection-list" id="selection-list"></div>
         </div>
     </div>
-
-    <!-- Add Transaction Modal -->
     <div class="modal-overlay" id="modal-transaction">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>ثبت تراکنش جدید</h3>
-                <button class="close-modal" onclick="closeModal('modal-transaction')">&times;</button>
-            </div>
+            <div class="modal-header"><h3>ثبت تراکنش جدید</h3><button class="close-modal" onclick="closeModal('modal-transaction')">&times;</button></div>
             <div class="type-selector">
                 <div class="type-option selected" onclick="setTransType('expense')" id="opt-expense">هزینه</div>
                 <div class="type-option" onclick="setTransType('income')" id="opt-income">درآمد</div>
                 <div class="type-option" onclick="setTransType('transfer')" id="opt-transfer">انتقال</div>
             </div>
             <form id="form-transaction">
-                <div class="form-group">
-                    <label class="form-label">مبلغ (تومان)</label>
-                    <input type="text" inputmode="numeric" id="trans-amount" class="form-input money-input" placeholder="۰" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">عنوان</label>
-                    <input type="text" id="trans-title" class="form-input" placeholder="مثلا: خرید نان" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">دسته بندی (تگ)</label>
-                    <input type="text" id="trans-tags" class="form-input" placeholder="مثلا: خانه (با فاصله جدا کنید)">
-                    <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 5px;">حداکثر ۳ تگ. در صورت خالی بودن، #سایر ثبت می‌شود.</div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">حساب مبدا</label>
-                    <input type="hidden" id="trans-account">
-                    <div class="form-input select-trigger" id="trigger-trans-account" onclick="openAccountSelect('trans-account', 'انتخاب حساب مبدا')">انتخاب کنید...</div>
-                </div>
-                <div class="form-group" id="target-account-group" style="display:none;">
-                    <label class="form-label">حساب مقصد</label>
-                    <input type="hidden" id="trans-target-account">
-                    <div class="form-input select-trigger" id="trigger-trans-target-account" onclick="openAccountSelect('trans-target-account', 'انتخاب حساب مقصد')">انتخاب کنید...</div>
-                </div>
+                <div class="form-group"><label class="form-label">مبلغ (تومان)</label><input type="text" inputmode="numeric" id="trans-amount" class="form-input money-input" placeholder="۰" required></div>
+                <div class="form-group"><label class="form-label">عنوان</label><input type="text" id="trans-title" class="form-input" placeholder="مثلا: خرید نان" required></div>
+                <div class="form-group"><label class="form-label">دسته بندی (تگ)</label><input type="text" id="trans-tags" class="form-input" placeholder="مثلا: خانه (با فاصله جدا کنید)"><div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 5px;">حداکثر ۳ تگ. در صورت خالی بودن، #سایر ثبت می‌شود.</div></div>
+                <div class="form-group"><label class="form-label">حساب مبدا</label><input type="hidden" id="trans-account"><div class="form-input select-trigger" id="trigger-trans-account" onclick="openAccountSelect('trans-account', 'انتخاب حساب مبدا')">انتخاب کنید...</div></div>
+                <div class="form-group" id="target-account-group" style="display:none;"><label class="form-label">حساب مقصد</label><input type="hidden" id="trans-target-account"><div class="form-input select-trigger" id="trigger-trans-target-account" onclick="openAccountSelect('trans-target-account', 'انتخاب حساب مقصد')">انتخاب کنید...</div></div>
                 <button type="submit" class="btn-primary">ثبت تراکنش</button>
             </form>
         </div>
     </div>
-
-    <!-- Categories List Modal -->
     <div class="modal-overlay" id="modal-categories">
         <div class="modal-content" style="height: 80%;">
-            <div class="modal-header">
-                <h3>دسته بندی ها</h3>
-                <button class="close-modal" onclick="closeModal('modal-categories')">&times;</button>
-            </div>
+            <div class="modal-header"><h3>دسته بندی ها</h3><button class="close-modal" onclick="closeModal('modal-categories')">&times;</button></div>
             <div id="categories-list" style="padding-bottom: 20px;"></div>
         </div>
     </div>
-
-    <!-- Add Account Modal -->
     <div class="modal-overlay" id="modal-account">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>افزودن حساب جدید</h3>
-                <button class="close-modal" onclick="closeModal('modal-account')">&times;</button>
-            </div>
+            <div class="modal-header"><h3 id="modal-account-title">افزودن حساب جدید</h3><button class="close-modal" onclick="closeModal('modal-account')">&times;</button></div>
             <form id="form-account">
+                <div class="form-group"><label class="form-label">نام حساب / کارت</label><input type="text" id="acc-name" class="form-input" placeholder="مثلا: بانک صادرات" required></div>
+                <div class="form-group"><label class="form-label">موجودی فعلی (تومان)</label><input type="text" inputmode="numeric" id="acc-balance" class="form-input money-input" placeholder="۰" value="۰"></div>
+                <div class="form-group"><label class="form-label">نوع حساب</label><input type="hidden" id="acc-type" value="card"><div class="form-input select-trigger" id="trigger-acc-type" onclick="openTypeSelect()">کارت بانکی</div></div>
+                <button type="submit" class="btn-primary" id="btn-save-account">ذخیره حساب</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW MODAL: ASSET ADD/EDIT -->
+    <div class="modal-overlay" id="modal-asset">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="modal-asset-title">افزودن دارایی</h3><button class="close-modal" onclick="closeModal('modal-asset')">&times;</button></div>
+            <form id="form-asset">
                 <div class="form-group">
-                    <label class="form-label">نام حساب / کارت</label>
-                    <input type="text" id="acc-name" class="form-input" placeholder="مثلا: بانک صادرات" required>
+                    <label class="form-label">نام دارایی</label>
+                    <input type="text" id="asset-name" class="form-input" placeholder="مثلا: سکه طلا، دلار، بیت‌کوین" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">موجودی اولیه (تومان)</label>
-                    <input type="text" inputmode="numeric" id="acc-balance" class="form-input money-input" placeholder="۰" value="۰">
+                    <label class="form-label">ارزش نقدی فعلی (تومان)</label>
+                    <input type="text" inputmode="numeric" id="asset-value" class="form-input money-input" placeholder="۰" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">نوع حساب</label>
-                    <input type="hidden" id="acc-type" value="card">
-                    <div class="form-input select-trigger" id="trigger-acc-type" onclick="openTypeSelect()">کارت بانکی</div>
-                </div>
-                <button type="submit" class="btn-primary">ایجاد حساب</button>
+                <button type="submit" class="btn-primary" id="btn-save-asset">ذخیره دارایی</button>
             </form>
         </div>
     </div>
@@ -326,11 +352,7 @@
 <script src="script.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(registration => {
-            console.log('SW Registered');
-        }).catch(error => {
-            console.log('SW Registration Failed');
-        });
+        navigator.serviceWorker.register('sw.js');
     }
 </script>
 </body>
