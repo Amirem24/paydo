@@ -10,8 +10,11 @@ function getPersianMonthName(monthIndex) { const months = ["فروردین","ا�
 function addPersianMonths(year, month, monthsToAdd) {
     let totalMonths = month + monthsToAdd;
     let addedYears = Math.floor((totalMonths - 1) / 12);
-    let newYear = year + addedYears;
-    let newMonth = ((totalMonths - 1) % 12) + 1;
+    // Handle negative months logic correctly if needed, but simple addition works for positive flow usually. 
+    // For full support (back/forward):
+    const dateVal = (year * 12) + (month - 1) + monthsToAdd;
+    const newYear = Math.floor(dateVal / 12);
+    const newMonth = (dateVal % 12) + 1;
     return { year: newYear, month: newMonth };
 }
 
@@ -20,7 +23,7 @@ let state = {
     accounts: [{ id: 1, name: 'کیف پول نقدی', type: 'cash', balance: 0 }],
     transactions: [],
     assets: [], 
-    loans: [], // Loans Array
+    loans: [], 
     currentTransType: 'expense',
     budgetMonthOffset: 0,
     budgetType: 'expense'
@@ -28,7 +31,7 @@ let state = {
 
 let editingAccountId = null;
 let editingAssetId = null; 
-let currentLoanId = null; // Track which loan is being viewed
+let currentLoanId = null;
 const DB_NAME = 'poolaki_data_v2';
 
 // --- UI UTILS ---
@@ -46,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('form-transaction').addEventListener('submit', saveTransaction);
         document.getElementById('form-account').addEventListener('submit', saveAccount);
         document.getElementById('form-asset').addEventListener('submit', saveAsset);
-        document.getElementById('form-loan').addEventListener('submit', saveLoan); // Loan Listener
+        document.getElementById('form-loan').addEventListener('submit', saveLoan); 
         document.getElementById('transaction-search').addEventListener('input', filterTransactions);
         
         // Auto-calc installment amount
@@ -60,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('loan-total').addEventListener('input', calcInstallment);
         document.getElementById('loan-count').addEventListener('input', calcInstallment);
         
-        // Delete Loan Button
         document.getElementById('btn-delete-loan').addEventListener('click', () => {
              if(currentLoanId) deleteLoan(currentLoanId);
         });
@@ -90,7 +92,7 @@ function loadData() {
     const saved = localStorage.getItem(DB_NAME);
     if (saved) { try { state = JSON.parse(saved); } catch (e) { console.error('Data corruption'); showToast('خطا در خواندن اطلاعات', 'error'); } }
     if(!state.assets) state.assets = [];
-    if(!state.loans) state.loans = []; // Ensure loans array exists
+    if(!state.loans) state.loans = [];
     if(typeof state.budgetMonthOffset === 'undefined') state.budgetMonthOffset = 0;
     if(typeof state.budgetType === 'undefined') state.budgetType = 'expense';
 }
@@ -98,8 +100,10 @@ function loadData() {
 function saveData() {
     localStorage.setItem(DB_NAME, JSON.stringify(state));
     renderDashboard();
-    renderHistory();
-    renderAccountsList();
+    // اگر در صفحه تاریخچه هستیم رندر شود
+    if(document.getElementById('view-history').classList.contains('active')) renderHistory();
+    // اگر در صفحه حساب‌ها هستیم رندر شود (حتی اگر از تنظیمات آمده باشیم)
+    if(document.getElementById('view-accounts').classList.contains('active')) renderAccountsList();
     if(document.getElementById('view-budget').classList.contains('active')) renderBudget();
     if(document.getElementById('view-assets').classList.contains('active')) renderAssets();
     if(document.getElementById('view-loans').classList.contains('active')) renderLoansList();
@@ -115,17 +119,26 @@ function setupInputFormatters() {
     });
 }
 
-// --- NAVIGATION ---
+// --- NAVIGATION (UPDATED) ---
 function switchView(viewName) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.getElementById(`view-${viewName}`).classList.add('active');
     
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     
-    let navId = `nav-${viewName}`;
-    if (viewName === 'budget') navId = 'nav-history'; 
-    if (viewName === 'history') navId = 'nav-dashboard';
-    if (viewName === 'assets' || viewName === 'loans' || viewName === 'loan-details') navId = 'nav-tools';
+    // منطق جدید برای نویگیشن بار
+    let navId = '';
+    
+    if (viewName === 'dashboard') navId = 'nav-dashboard';
+    
+    // صفحه تاریخچه و بودجه هر دو دکمه "گزارش" را روشن میکنند
+    if (viewName === 'history' || viewName === 'budget') navId = 'nav-history'; 
+    
+    // صفحه حساب‌ها (که حالا از تنظیمات می‌آید) دکمه‌ای در نویگیشن پایین ندارد
+    // مگر اینکه بخواهیم دکمه تنظیمات روشن بماند
+    if (viewName === 'settings' || viewName === 'accounts') navId = 'nav-settings';
+    
+    if (viewName === 'assets' || viewName === 'loans' || viewName === 'loan-details' || viewName === 'tools') navId = 'nav-tools';
     
     const navItem = document.getElementById(navId);
     if(navItem) navItem.classList.add('active');
@@ -139,11 +152,125 @@ function switchView(viewName) {
     if(viewName === 'loans') renderLoansList();
 }
 
-// --- LOANS LOGIC ---
+// --- BUDGET & CHART LOGIC (FIXED) ---
+window.changeBudgetMonth = function(offset) {
+    state.budgetMonthOffset += offset;
+    renderBudget();
+}
+
+window.setBudgetTab = function(type) {
+    state.budgetType = type;
+    document.getElementById('tab-budget-expense').classList.toggle('active', type === 'expense');
+    document.getElementById('tab-budget-income').classList.toggle('active', type === 'income');
+    renderBudget();
+}
+
+function renderBudget() {
+    // 1. Calculate Target Month
+    const now = new Date();
+    const currentPersian = getPersianDateParts(now.getTime());
+    const targetDate = addPersianMonths(currentPersian.year, currentPersian.month, state.budgetMonthOffset);
+    
+    document.getElementById('budget-month-label').innerText = `${getPersianMonthName(targetDate.month)} ${toPersianNum(targetDate.year)}`;
+
+    // 2. Filter Transactions
+    const filtered = state.transactions.filter(t => {
+        if (t.type !== state.budgetType) return false;
+        const tDate = getPersianDateParts(t.timestamp);
+        return tDate.year === targetDate.year && tDate.month === targetDate.month;
+    });
+
+    // 3. Calculate Totals
+    const totalAmount = filtered.reduce((sum, t) => sum + t.amount, 0);
+    document.getElementById('budget-total-amount').innerHTML = `${formatMoney(totalAmount)} <span style="font-size:14px; font-weight:400">تومان</span>`;
+    document.getElementById('budget-total-label').innerText = state.budgetType === 'expense' ? 'مجموع هزینه این ماه' : 'مجموع درآمد این ماه';
+
+    // 4. Prepare Chart Data (Daily)
+    const daysInMonth = (targetDate.month <= 6) ? 31 : (targetDate.month === 12 ? 29 : 30); // Simple leap year ignore for UI
+    const dailyData = new Array(daysInMonth + 1).fill(0);
+    
+    filtered.forEach(t => {
+        const d = getPersianDateParts(t.timestamp).day;
+        if(d <= daysInMonth) dailyData[d] += t.amount;
+    });
+
+    // Render Chart Bars
+    const chartContainer = document.getElementById('chart-bars-area');
+    chartContainer.innerHTML = '';
+    const maxVal = Math.max(...dailyData) || 1;
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const amount = dailyData[i];
+        const percent = (amount / maxVal) * 100;
+        const bar = document.createElement('div');
+        bar.className = `chart-bar ${amount === 0 ? 'empty' : ''}`;
+        bar.style.height = `${Math.max(percent, amount > 0 ? 5 : 0)}%`; // Min height for visibility
+        if(state.budgetType === 'income') bar.style.backgroundColor = '#00e676'; // Green for income
+        
+        // Tooltip event
+        bar.onclick = (e) => {
+            const tooltip = document.getElementById('chart-tooltip');
+            document.querySelectorAll('.chart-bar').forEach(b => b.classList.remove('active'));
+            bar.classList.add('active');
+            tooltip.style.opacity = '1';
+            tooltip.innerHTML = `${toPersianNum(i)} ${getPersianMonthName(targetDate.month)}<br>${formatMoney(amount)} ت`;
+            // Position tooltip
+            const rect = bar.getBoundingClientRect();
+            const containerRect = document.querySelector('.chart-container').getBoundingClientRect();
+            tooltip.style.left = (rect.left - containerRect.left + rect.width/2) + 'px';
+            tooltip.style.top = (rect.top - containerRect.top) + 'px';
+        };
+        
+        chartContainer.appendChild(bar);
+    }
+    
+    // Hide tooltip on click elsewhere
+    document.addEventListener('click', (e) => {
+        if(!e.target.closest('.chart-bar')) {
+             document.getElementById('chart-tooltip').style.opacity = '0';
+             document.querySelectorAll('.chart-bar').forEach(b => b.classList.remove('active'));
+        }
+    });
+
+    // 5. Category Breakdown
+    const catContainer = document.getElementById('budget-categories-list');
+    catContainer.innerHTML = '';
+    
+    const catTotals = {};
+    filtered.forEach(t => {
+        // Use the first tag for categorization, or #other
+        const tag = (t.tags && t.tags.length > 0) ? t.tags[0] : '#سایر';
+        catTotals[tag] = (catTotals[tag] || 0) + t.amount;
+    });
+
+    const sortedCats = Object.entries(catTotals).sort((a,b) => b[1] - a[1]);
+    
+    if (sortedCats.length === 0) {
+        catContainer.innerHTML = '<div style="text-align:center; opacity:0.5; font-size:12px; margin-top:20px;">داده‌ای برای نمایش وجود ندارد</div>';
+    } else {
+        sortedCats.forEach(([name, amount]) => {
+            const percent = (amount / totalAmount) * 100;
+            const div = document.createElement('div');
+            div.className = 'cat-row';
+            div.innerHTML = `
+                <div class="cat-header">
+                    <span class="cat-name"><i class="material-icons" style="font-size:14px; opacity:0.7">label</i> ${name}</span>
+                    <span class="cat-amount">${formatMoney(amount)} <span style="font-size:10px; opacity:0.7">%${toPersianNum(percent.toFixed(0))}</span></span>
+                </div>
+                <div class="cat-progress-bg">
+                    <div class="cat-progress-fill" style="width: ${percent}%; background-color: ${state.budgetType==='income'?'#00e676':'#448aff'}"></div>
+                </div>
+            `;
+            catContainer.appendChild(div);
+        });
+    }
+}
+
+
+// --- LOANS LOGIC (Kept as is) ---
 function renderLoansList() {
     const container = document.getElementById('loans-list-container');
     container.innerHTML = '';
-    
     if (state.loans.length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="material-icons">account_balance</i><br>وامی ثبت نشده است</div>';
     } else {
@@ -152,7 +279,6 @@ function renderLoansList() {
             const totalCount = loan.installments.length;
             const progress = (paidCount / totalCount) * 100;
             const lastInstallment = loan.installments[totalCount - 1];
-            
             const div = document.createElement('div');
             div.className = 'loan-card';
             div.onclick = () => openLoanDetails(loan.id);
@@ -173,13 +299,7 @@ function renderLoansList() {
         });
     }
 }
-
-window.openAddLoanModal = function() {
-    document.getElementById('form-loan').reset();
-    document.getElementById('loan-start-year').value = 1403; // Default year
-    document.getElementById('modal-loan').style.display = 'flex';
-}
-
+window.openAddLoanModal = function() { document.getElementById('form-loan').reset(); document.getElementById('loan-start-year').value = 1403; document.getElementById('modal-loan').style.display = 'flex'; }
 function saveLoan(e) {
     e.preventDefault();
     const bank = document.getElementById('loan-bank').value;
@@ -188,116 +308,36 @@ function saveLoan(e) {
     const startYear = parseInt(document.getElementById('loan-start-year').value);
     const startMonth = parseInt(document.getElementById('loan-start-month').value);
     const instAmount = cleanNumber(document.getElementById('loan-installment-amount').value);
-    
-    if(!bank || !total || !count || !startYear || !startMonth || !instAmount) {
-        showToast('لطفا همه فیلدها را پر کنید', 'error');
-        return;
-    }
-
-    // Generate Installments
+    if(!bank || !total || !count || !startYear || !startMonth || !instAmount) { showToast('لطفا همه فیلدها را پر کنید', 'error'); return; }
     let installments = [];
     for(let i = 0; i < count; i++) {
         const date = addPersianMonths(startYear, startMonth, i);
-        installments.push({
-            id: i + 1,
-            year: date.year,
-            month: date.month,
-            amount: instAmount,
-            isPaid: false
-        });
+        installments.push({ id: i + 1, year: date.year, month: date.month, amount: instAmount, isPaid: false });
     }
-
-    state.loans.push({
-        id: Date.now(),
-        bankName: bank,
-        totalAmount: total,
-        installments: installments
-    });
-
-    saveData();
-    closeModal('modal-loan');
-    showToast('وام جدید ایجاد شد', 'success');
+    state.loans.push({ id: Date.now(), bankName: bank, totalAmount: total, installments: installments });
+    saveData(); closeModal('modal-loan'); showToast('وام جدید ایجاد شد', 'success');
 }
-
-window.openLoanDetails = function(id) {
-    currentLoanId = id;
-    renderLoanDetails(id);
-    switchView('loan-details');
-}
-
+window.openLoanDetails = function(id) { currentLoanId = id; renderLoanDetails(id); switchView('loan-details'); }
 function renderLoanDetails(id) {
-    const loan = state.loans.find(l => l.id === id);
-    if(!loan) return;
-
+    const loan = state.loans.find(l => l.id === id); if(!loan) return;
     const paidInst = loan.installments.filter(i => i.isPaid);
     const paidAmount = paidInst.reduce((sum, i) => sum + i.amount, 0);
     const remainingAmount = loan.totalAmount - paidAmount;
-    const paidCount = paidInst.length;
-    const totalCount = loan.installments.length;
-
-    // Render Summary Card
-    document.getElementById('loan-summary-card').innerHTML = `
-        <h2 style="margin-bottom:5px;">${loan.bankName}</h2>
-        <div style="font-size:12px; opacity:0.8; margin-bottom:20px;">مبلغ کل: ${formatMoney(loan.totalAmount)} تومان</div>
-        
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;">
-            <span>پرداختی شما</span>
-            <span style="font-weight:700">${formatMoney(paidAmount)}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:13px;">
-            <span>باقیمانده</span>
-            <span style="font-weight:700">${formatMoney(remainingAmount)}</span>
-        </div>
-        
-        <div style="background:rgba(0,0,0,0.2); border-radius:10px; padding:10px; font-size:12px;">
-            ${toPersianNum(paidCount)} از ${toPersianNum(totalCount)} قسط پرداخت شده
-        </div>
-    `;
-
-    // Render Timeline
+    document.getElementById('loan-summary-card').innerHTML = `<h2 style="margin-bottom:5px;">${loan.bankName}</h2><div style="font-size:12px; opacity:0.8; margin-bottom:20px;">مبلغ کل: ${formatMoney(loan.totalAmount)} تومان</div><div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px;"><span>پرداختی شما</span><span style="font-weight:700">${formatMoney(paidAmount)}</span></div><div style="display:flex; justify-content:space-between; margin-bottom:20px; font-size:13px;"><span>باقیمانده</span><span style="font-weight:700">${formatMoney(remainingAmount)}</span></div><div style="background:rgba(0,0,0,0.2); border-radius:10px; padding:10px; font-size:12px;">${toPersianNum(paidInst.length)} از ${toPersianNum(loan.installments.length)} قسط پرداخت شده</div>`;
     const timeline = document.getElementById('loan-timeline');
     timeline.innerHTML = '';
-    
     loan.installments.forEach((inst, index) => {
         const div = document.createElement('div');
         div.className = `timeline-item ${inst.isPaid ? 'paid' : ''}`;
         div.onclick = () => toggleInstallment(loan.id, index);
-        
-        div.innerHTML = `
-            <div class="timeline-point"></div>
-            <div class="timeline-date">${getPersianMonthName(inst.month)} ${toPersianNum(inst.year)}</div>
-            <div class="timeline-card">
-                <div class="timeline-header">
-                    <span class="timeline-title">قسط ${toPersianNum(inst.id)}</span>
-                    <span class="timeline-amount">${formatMoney(inst.amount)}</span>
-                </div>
-                <div class="timeline-status">
-                    ${inst.isPaid ? '<i class="material-icons" style="font-size:12px">check_circle</i> پرداخت شده' : '<i class="material-icons" style="font-size:12px">radio_button_unchecked</i> پرداخت نشده'}
-                </div>
-            </div>
-        `;
+        div.innerHTML = `<div class="timeline-point"></div><div class="timeline-date">${getPersianMonthName(inst.month)} ${toPersianNum(inst.year)}</div><div class="timeline-card"><div class="timeline-header"><span class="timeline-title">قسط ${toPersianNum(inst.id)}</span><span class="timeline-amount">${formatMoney(inst.amount)}</span></div><div class="timeline-status">${inst.isPaid ? '<i class="material-icons" style="font-size:12px">check_circle</i> پرداخت شده' : '<i class="material-icons" style="font-size:12px">radio_button_unchecked</i> پرداخت نشده'}</div></div>`;
         timeline.appendChild(div);
     });
 }
+window.toggleInstallment = function(loanId, instIndex) { const loan = state.loans.find(l => l.id === loanId); if(loan) { loan.installments[instIndex].isPaid = !loan.installments[instIndex].isPaid; saveData(); } }
+window.deleteLoan = function(id) { showConfirm('حذف وام', 'آیا از حذف این وام و تاریخچه اقساط آن مطمئن هستید؟', () => { state.loans = state.loans.filter(l => l.id !== id); saveData(); showToast('وام حذف شد', 'success'); switchView('loans'); }); }
 
-window.toggleInstallment = function(loanId, instIndex) {
-    const loan = state.loans.find(l => l.id === loanId);
-    if(loan) {
-        loan.installments[instIndex].isPaid = !loan.installments[instIndex].isPaid;
-        saveData();
-    }
-}
-
-window.deleteLoan = function(id) {
-    showConfirm('حذف وام', 'آیا از حذف این وام و تاریخچه اقساط آن مطمئن هستید؟', () => {
-        state.loans = state.loans.filter(l => l.id !== id);
-        saveData();
-        showToast('وام حذف شد', 'success');
-        switchView('loans');
-    });
-}
-
-// --- STANDARD FUNCTIONS (Same as before) ---
+// --- STANDARD FUNCTIONS (Rest of the file remains similar) ---
 window.nextOnboarding = function() { document.getElementById('slide-welcome').classList.remove('active'); document.getElementById('slide-setup').classList.add('active'); }
 window.prevOnboarding = function() { document.getElementById('slide-setup').classList.remove('active'); document.getElementById('slide-welcome').classList.add('active'); }
 window.finishOnboarding = function() { localStorage.setItem('paydo_setup_complete', 'true'); document.getElementById('onboarding-screen').style.transition = 'opacity 0.5s'; document.getElementById('onboarding-screen').style.opacity = '0'; document.getElementById('app-container').style.opacity = '1'; setTimeout(() => { document.getElementById('onboarding-screen').style.display = 'none'; }, 500); }
