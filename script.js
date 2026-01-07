@@ -21,7 +21,7 @@ window.onerror = function(msg, url, line) {
     return false;
 };
 
-// Footer Click Handler (Hidden Debug)
+// Footer Click Handler
 let footerClickCount = 0;
 let footerClickTimer;
 window.handleFooterClick = function() {
@@ -55,10 +55,9 @@ function addPersianMonths(year, month, day, monthsToAdd) {
     let totalMonths = month + monthsToAdd;
     let newYear = year + Math.floor((totalMonths - 1) / 12);
     let newMonth = ((totalMonths - 1) % 12) + 1;
-    // Check days in month (Simple check for Esfand/31 day months)
     let newDay = day;
     if (newMonth > 6 && newDay === 31) newDay = 30;
-    if (newMonth === 12 && newDay > 29) newDay = 29; // Assumption
+    if (newMonth === 12 && newDay > 29) newDay = 29; 
     return { year: newYear, month: newMonth, day: newDay };
 }
 
@@ -166,6 +165,134 @@ function setupInputFormatters() {
             e.target.value = (rawVal === 0 && e.target.value.trim() === '') ? '' : formatMoney(rawVal);
         });
     });
+}
+
+// --- REPORT GENERATION ---
+window.openReportModal = function() {
+    const now = new Date();
+    const pDate = getPersianDateParts(now.getTime());
+    // Default to this month
+    document.getElementById('rep-start-year').value = pDate.year;
+    document.getElementById('rep-start-month').value = pDate.month;
+    document.getElementById('rep-start-day').value = 1;
+    document.getElementById('rep-end-year').value = pDate.year;
+    document.getElementById('rep-end-month').value = pDate.month;
+    document.getElementById('rep-end-day').value = 30; // Approximation
+    document.getElementById('modal-report').style.display = 'flex';
+}
+
+window.setReportDate = function(mode) {
+    const now = new Date();
+    const pDate = getPersianDateParts(now.getTime());
+    let sy, sm, sd, ey, em, ed;
+    
+    if(mode === 'thisMonth') {
+        sy = pDate.year; sm = pDate.month; sd = 1;
+        ey = pDate.year; em = pDate.month; ed = (sm <= 6) ? 31 : (sm === 12 ? 29 : 30);
+    } else if (mode === 'lastMonth') {
+        if(pDate.month === 1) { sy = pDate.year - 1; sm = 12; } else { sy = pDate.year; sm = pDate.month - 1; }
+        sd = 1;
+        ey = sy; em = sm; ed = (sm <= 6) ? 31 : (sm === 12 ? 29 : 30);
+    }
+    
+    document.getElementById('rep-start-year').value = sy;
+    document.getElementById('rep-start-month').value = sm;
+    document.getElementById('rep-start-day').value = sd;
+    document.getElementById('rep-end-year').value = ey;
+    document.getElementById('rep-end-month').value = em;
+    document.getElementById('rep-end-day').value = ed;
+}
+
+window.generateReport = function() {
+    // 1. Get Dates
+    const sY = parseInt(document.getElementById('rep-start-year').value);
+    const sM = parseInt(document.getElementById('rep-start-month').value);
+    const sD = parseInt(document.getElementById('rep-start-day').value);
+    const eY = parseInt(document.getElementById('rep-end-year').value);
+    const eM = parseInt(document.getElementById('rep-end-month').value);
+    const eD = parseInt(document.getElementById('rep-end-day').value);
+
+    // Simple comparison logic (Convert to string YYYYMMDD for easier compare)
+    const startDateNum = sY * 10000 + sM * 100 + sD;
+    const endDateNum = eY * 10000 + eM * 100 + eD;
+
+    // 2. Filter Transactions
+    const filtered = state.transactions.filter(t => {
+        const pd = getPersianDateParts(t.timestamp);
+        const tDateNum = pd.year * 10000 + pd.month * 100 + pd.day;
+        return tDateNum >= startDateNum && tDateNum <= endDateNum;
+    });
+
+    if(filtered.length === 0) {
+        showToast('تراکنشی در این بازه یافت نشد', 'error');
+        return;
+    }
+
+    // 3. Calculate Stats
+    let sumIncome = 0, sumExpense = 0, maxIncome = 0, maxExpense = 0;
+    filtered.forEach(t => {
+        if(t.type === 'income') {
+            sumIncome += t.amount;
+            if(t.amount > maxIncome) maxIncome = t.amount;
+        } else if(t.type === 'expense') {
+            sumExpense += t.amount;
+            if(t.amount > maxExpense) maxExpense = t.amount;
+        }
+    });
+
+    // 4. Generate HTML
+    let tableRows = '';
+    // Sort by date descending
+    filtered.sort((a,b) => b.timestamp - a.timestamp);
+    
+    filtered.forEach(t => {
+        const pd = getPersianDateParts(t.timestamp);
+        const typeStr = (t.type === 'expense') ? 'خرج' : ((t.type === 'income') ? 'واریزی' : 'انتقال');
+        tableRows += `
+            <tr>
+                <td>${toPersianNum(pd.year)}/${toPersianNum(pd.month)}/${toPersianNum(pd.day)}</td>
+                <td>${typeStr}</td>
+                <td>${t.tags && t.tags.length ? t.tags.join(' ') : '-'}</td>
+                <td>${t.title}</td>
+                <td>${formatMoney(t.amount)}</td>
+            </tr>
+        `;
+    });
+
+    const printArea = document.getElementById('print-area');
+    printArea.innerHTML = `
+        <div class="print-header">
+            <div class="print-title">گزارش دفتر خرج</div>
+            <div class="print-subtitle">از ${toPersianNum(sY)}/${toPersianNum(sM)}/${toPersianNum(sD)} تا ${toPersianNum(eY)}/${toPersianNum(eM)}/${toPersianNum(eD)}</div>
+        </div>
+        
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>نوع</th>
+                    <th>دسته‌بندی</th>
+                    <th>عنوان</th>
+                    <th>مبلغ</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows}
+            </tbody>
+        </table>
+
+        <div class="print-summary">
+            <div class="print-summary-row"><span>تعداد آیتم</span><span>${toPersianNum(filtered.length)}</span></div>
+            <div class="print-summary-row"><span>جمع واریزی‌ها</span><span>${formatMoney(sumIncome)}</span></div>
+            <div class="print-summary-row"><span>جمع خرج‌ها</span><span>${formatMoney(sumExpense)}</span></div>
+            <div class="print-summary-row"><span>خالص (واریزی - خرج)</span><span>${formatMoney(sumIncome - sumExpense)}</span></div>
+            <div class="print-summary-row"><span>بیشترین واریزی</span><span>${formatMoney(maxIncome)}</span></div>
+            <div class="print-summary-row"><span>بیشترین خرج</span><span>${formatMoney(maxExpense)}</span></div>
+        </div>
+    `;
+
+    // 5. Print
+    window.print();
 }
 
 // --- NAVIGATION ---
@@ -277,7 +404,7 @@ function renderBudget() {
     }
 }
 
-// --- LOANS LOGIC (IMPROVED) ---
+// --- LOANS LOGIC ---
 function renderLoansList() {
     const container = document.getElementById('loans-list-container');
     container.innerHTML = '';
